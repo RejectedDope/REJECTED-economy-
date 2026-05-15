@@ -22,6 +22,10 @@ function mapCSVToItem(row: CSVRow, userId: string): Omit<InventoryItem, "id" | "
   const category = row["Category"] || row["category"] || row["Primary Category"] || "Uncategorized";
   const imageCount = parseInt(row["Photo Count"] || row["image_count"] || "1") || 1;
 
+  const viewsRaw = parseInt(row["Views"] || row["views"] || "0") || 0;
+  const watchersRaw = parseInt(row["Watchers"] || row["watchers"] || "0") || 0;
+  const impressionsRaw = parseInt(row["Impressions"] || row["impressions"] || "0") || 0;
+
   return {
     user_id: userId,
     title: title.slice(0, 200),
@@ -37,7 +41,13 @@ function mapCSVToItem(row: CSVRow, userId: string): Omit<InventoryItem, "id" | "
       100,
       Math.round((title.split(" ").filter((w) => w.length > 2).length / 10) * 100)
     ),
+    has_promoted_listing: false,
+    shipping_type: "calculated" as const,
+    views: viewsRaw,
+    watchers: watchersRaw,
+    impressions: impressionsRaw,
     status: "active",
+    updated_at: new Date().toISOString(),
     image_url: row["Picture URL"] || row["image_url"] || undefined,
   };
 }
