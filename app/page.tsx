@@ -44,18 +44,18 @@ const FEATURES = [
 const HOW_IT_WORKS = [
   {
     step: "01",
-    title: "Upload Your Inventory",
-    body: "Export from eBay Seller Hub and drop the CSV. We parse it, score every listing, and surface the problems immediately.",
+    title: "Submit the Audit Intake",
+    body: "Tell ResaleIQ where you sell, how much inventory is sitting, and what problem is costing you the most cash right now.",
   },
   {
     step: "02",
-    title: "See What's Dead",
-    body: "Every item gets a Dead Inventory Score and Visibility Risk rating based on listing age, specifics, photos, and title quality.",
+    title: "Scan the Risk Signals",
+    body: "We look at age risk, pricing position, visibility, title quality, item specifics, photo friction, and shipping friction.",
   },
   {
     step: "03",
-    title: "Execute the Plan",
-    body: "The Recovery Center gives you a prioritized action list — what to relist, what to cut, what to bundle. Work the list. Move the cash.",
+    title: "Work the Recovery List",
+    body: "The Recovery Center shows what to relist, rewrite, mark down, bundle, move, or liquidate. Work the list. Move the cash.",
   },
 ];
 
@@ -75,13 +75,13 @@ export default function LandingPage() {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/login">
+            <Link href="/dashboard">
               <Button variant="ghost" size="sm">
-                Sign In
+                Demo Dashboard
               </Button>
             </Link>
-            <Link href="/signup">
-              <Button size="sm">Get Started</Button>
+            <Link href="/recovery-audit">
+              <Button size="sm">Get Free Audit</Button>
             </Link>
           </div>
         </div>
@@ -115,9 +115,9 @@ export default function LandingPage() {
           </p>
 
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Link href="/signup">
+            <Link href="/recovery-audit">
               <Button size="xl" className="w-full sm:w-auto">
-                Get Free Inventory Recovery Audit
+                Get Free Recovery Audit
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
@@ -129,7 +129,7 @@ export default function LandingPage() {
           </div>
 
           <p className="mt-4 text-xs text-zinc-700">
-            No credit card required · Import eBay CSV in seconds
+            No credit card required · No account required · Takes under 2 minutes
           </p>
         </div>
       </section>
@@ -237,9 +237,9 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/signup" className="mt-8 block">
+                <Link href="/recovery-audit" className="mt-8 block">
                   <Button>
-                    Audit My Inventory Free
+                    Start Free Recovery Audit
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
@@ -311,7 +311,7 @@ export default function LandingPage() {
             Every day your inventory sits is money locked up. ResaleIQ shows
             you exactly where it is and exactly what to do about it.
           </p>
-          <Link href="/signup" className="mt-8 block">
+          <Link href="/recovery-audit" className="mt-8 block">
             <Button size="xl" className="mx-auto">
               Get Your Free Recovery Audit
               <ArrowRight className="ml-2 h-5 w-5" />
