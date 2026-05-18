@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Zap, DollarSign } from "lucide-react";
+import { Zap } from "lucide-react";
 import { MOCK_ITEMS } from "@/lib/mock-data";
 import { scoreAll, buildRecoveryPlan } from "@/lib/scoring";
 import { ActionCards } from "@/components/recovery/ActionCards";

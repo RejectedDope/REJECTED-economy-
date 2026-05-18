@@ -61,7 +61,8 @@ export function calcDeadScore(item: InventoryItem): number {
   else if (item.days_listed <= 60)  score += 14;
   else if (item.days_listed <= 90)  score += 22;
   else if (item.days_listed <= 180) score += 28;
-  else                              score += 35; // 181d+ = buried, no freshness left
+  else if (item.days_listed < 365)  score += 35; // 181–364d = buried
+  else                              score += 38; // 365d+ = market has permanently rejected
 
   // ── pricing_competitiveness: 20 pts max ─────────────────────────────────
   // Price rejection: high views + zero watchers = buyers are seeing it and walking.
@@ -80,7 +81,8 @@ export function calcDeadScore(item: InventoryItem): number {
   // ── visibility_signals: 15 pts max ──────────────────────────────────────
   // Watcher deficit and view velocity measure how much algorithmic placement remains.
   let visPts = 0;
-  if (item.watchers === 0 && item.days_listed >= 60)       visPts += 7; // dead in the water
+  if (item.watchers === 0 && item.days_listed >= 365)      visPts += 9; // year+ no interest: concluded rejection
+  else if (item.watchers === 0 && item.days_listed >= 60)  visPts += 7; // dead in the water
   else if (item.watchers === 0 && item.days_listed >= 30)  visPts += 4;
   else if (item.watchers <= 1 && item.days_listed >= 90)   visPts += 3;
   const viewsPerDay = item.days_listed > 0 ? item.views / item.days_listed : item.views;
@@ -263,8 +265,9 @@ export function calcPrimaryAction(item: InventoryItem): RecoveryAction {
   const risk = calcVisibilityRisk(item);
 
   if (risk === "Critical") {
-    if (item.price < 15) return "bundle"; // too cheap to justify solo relist
-    return "relist_now";                  // full reset: end + fresh listing
+    if (item.days_listed >= 365) return "liquidate"; // year+ = market permanently rejected this price
+    if (item.price < 15) return "bundle";            // too cheap to justify solo relist
+    return "relist_now";                             // full reset: end + fresh listing
   }
 
   if (risk === "High") {

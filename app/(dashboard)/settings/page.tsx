@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Settings, Database, Bell, User, ShieldCheck, Zap } from "lucide-react";
+import { Settings, Database, Bell, User, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 
 const PLATFORMS = ["eBay", "Poshmark", "Mercari", "Depop", "Facebook Marketplace", "StockX", "GOAT", "Whatnot"];
-const CATEGORIES = ["Vintage Clothing", "Sneakers", "Electronics", "Streetwear", "Collectibles", "Handbags", "Cameras", "Accessories", "Other"];
 
 export default function SettingsPage() {
   const [primaryPlatform, setPrimaryPlatform] = useState("eBay");

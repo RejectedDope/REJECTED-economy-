@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Package, Search } from "lucide-react";
+import Link from "next/link";
+import { Package, Search, Upload } from "lucide-react";
 import { MOCK_ITEMS } from "@/lib/mock-data";
 import { scoreAll } from "@/lib/scoring";
 import { InventoryTable } from "@/components/analyzer/InventoryTable";
@@ -81,7 +82,16 @@ export default function InventoryPage() {
             All Inventory
           </span>
         </div>
-        <h1 className="text-2xl font-black text-zinc-100">Inventory</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-black text-zinc-100">Inventory</h1>
+          <Link
+            href="/inventory/import"
+            className="flex items-center gap-2 rounded-lg border border-zinc-700 px-4 py-2 text-xs font-bold text-zinc-300 transition-colors hover:border-[#E935C1] hover:text-[#E935C1]"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            Import
+          </Link>
+        </div>
         <p className="mt-1 text-sm text-zinc-500">
           Full view of every item — scored, sorted, ready to work.
         </p>

@@ -9,7 +9,7 @@ import {
   CheckCircle2,
   Clock,
 } from "lucide-react";
-import { scoreItem, RISK_COLORS, RISK_BG } from "@/lib/scoring";
+import { scoreItem } from "@/lib/scoring";
 import { analyzeItem } from "@/lib/recovery-engine";
 import { cn, formatCurrencyDecimal } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -237,7 +237,7 @@ export function ItemScanner() {
   }
 
   // Build InventoryItem + run scoring + analysis on every render (all sync)
-  const { analysis, scored } = useMemo(() => {
+  const { analysis } = useMemo(() => {
     const item: InventoryItem = {
       id: "scanner-preview",
       user_id: "demo",

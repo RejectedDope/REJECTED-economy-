@@ -13,7 +13,8 @@ export type LogCategory =
   | "auth"        // authentication and session events
   | "scoring"     // inventory / audit scoring engine
   | "runtime"     // unexpected runtime errors
-  | "deploy"      // deployment and startup events;
+  | "deploy"      // deployment and startup events
+  | "ingestion";  // inventory import, parsing, normalization
 
 export interface LogEntry {
   level: LogLevel;

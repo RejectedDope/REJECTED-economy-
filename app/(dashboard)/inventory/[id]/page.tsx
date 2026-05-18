@@ -16,7 +16,7 @@ import {
   DollarSign,
 } from "lucide-react";
 import { MOCK_ITEMS } from "@/lib/mock-data";
-import { scoreItem, RISK_COLORS, RISK_BG } from "@/lib/scoring";
+import { scoreItem } from "@/lib/scoring";
 import { analyzeItem } from "@/lib/recovery-engine";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";

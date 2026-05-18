@@ -1,15 +1,21 @@
+import { redirect } from "next/navigation";
 import { BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { LeadsTable, type AuditLead } from "@/components/admin/LeadsTable";
-import { supabaseConfigured } from "@/lib/env";
+import { requireAdmin, isPermissionError } from "@/lib/auth/admin";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminAuditLeadsPage() {
+  // Defense-in-depth: re-verify auth at page level even though layout does it too.
+  const auth = await requireAdmin();
+  if (!auth.ok) redirect("/login");
+
   let leads: AuditLead[] = [];
   let fetchError: string | null = null;
 
-  if (supabaseConfigured) {
+  try {
     const { createClient } = await import("@/lib/supabase/server");
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -17,8 +23,26 @@ export default async function AdminAuditLeadsPage() {
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (error) fetchError = error.message;
-    else leads = (data ?? []) as AuditLead[];
+    if (error) {
+      fetchError = isPermissionError(error)
+        ? "Permission denied — make sure migration 003_audit_scoring.sql has been run"
+        : error.message;
+      logger.supabaseError("audit_leads", "select", error.message, {
+        adminUserId: auth.userId,
+        isPermissionError: isPermissionError(error),
+      });
+    } else {
+      leads = (data ?? []) as AuditLead[];
+      logger.info("admin", "Audit leads loaded", {
+        count: leads.length,
+        adminUserId: auth.userId,
+      });
+    }
+  } catch (err) {
+    fetchError = "Failed to connect to database";
+    logger.error("admin", "Unexpected error loading audit leads", err, {
+      adminUserId: auth.userId,
+    });
   }
 
   return (

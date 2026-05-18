@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
 import type { ScoredItem, VisibilityRisk } from "@/lib/types";
@@ -28,6 +27,15 @@ const ACTION_LABELS: Record<string, string> = {
 
 type SortKey = "dead_inventory_score" | "days_listed" | "price" | "listing_health_score";
 type SortDir = "asc" | "desc";
+
+function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
+  if (sortKey !== col) return <ArrowUpDown className="h-3 w-3 text-zinc-600" />;
+  return sortDir === "asc" ? (
+    <ArrowUp className="h-3 w-3 text-[#E935C1]" />
+  ) : (
+    <ArrowDown className="h-3 w-3 text-[#E935C1]" />
+  );
+}
 
 interface InventoryTableProps {
   items: ScoredItem[];
@@ -61,15 +69,6 @@ export function InventoryTable({ items }: InventoryTableProps) {
       const mult = sortDir === "asc" ? 1 : -1;
       return (a[sortKey] - b[sortKey]) * mult;
     });
-
-  const SortIcon = ({ col }: { col: SortKey }) => {
-    if (sortKey !== col) return <ArrowUpDown className="h-3 w-3 text-zinc-600" />;
-    return sortDir === "asc" ? (
-      <ArrowUp className="h-3 w-3 text-[#E935C1]" />
-    ) : (
-      <ArrowDown className="h-3 w-3 text-[#E935C1]" />
-    );
-  };
 
   const riskOptions: Array<VisibilityRisk | "All"> = ["All", "Critical", "High", "Medium", "Low"];
 
@@ -116,7 +115,7 @@ export function InventoryTable({ items }: InventoryTableProps) {
                 onClick={() => handleSort("days_listed")}
               >
                 <span className="flex items-center justify-end gap-1">
-                  Age <SortIcon col="days_listed" />
+                  Age <SortIcon col="days_listed" sortKey={sortKey} sortDir={sortDir} />
                 </span>
               </th>
               <th
@@ -124,7 +123,7 @@ export function InventoryTable({ items }: InventoryTableProps) {
                 onClick={() => handleSort("price")}
               >
                 <span className="flex items-center justify-end gap-1">
-                  Price <SortIcon col="price" />
+                  Price <SortIcon col="price" sortKey={sortKey} sortDir={sortDir} />
                 </span>
               </th>
               <th
@@ -132,7 +131,7 @@ export function InventoryTable({ items }: InventoryTableProps) {
                 onClick={() => handleSort("dead_inventory_score")}
               >
                 <span className="flex items-center justify-end gap-1">
-                  Decay <SortIcon col="dead_inventory_score" />
+                  Decay <SortIcon col="dead_inventory_score" sortKey={sortKey} sortDir={sortDir} />
                 </span>
               </th>
               <th className="hidden px-4 py-3 text-center text-xs font-bold uppercase tracking-widest text-zinc-600 sm:table-cell">
