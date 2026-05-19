@@ -6,6 +6,7 @@ import {
   calcSnapshotSummary,
   extractPriceHistory,
   getLatestScoreBreakdown,
+  calcDecayAcceleration,
 } from "@/lib/inventory/snapshots";
 import type { ScoringSnapshot } from "@/lib/types";
 
@@ -272,5 +273,76 @@ describe("getLatestScoreBreakdown", () => {
     expect(breakdown).toHaveProperty("photos_component");
     expect(breakdown).toHaveProperty("title_component");
     expect(breakdown).toHaveProperty("total");
+  });
+});
+
+// ─── calcDecayAcceleration ────────────────────────────────────────────────────
+
+describe("calcDecayAcceleration", () => {
+  it("returns not accelerating for empty input", () => {
+    const result = calcDecayAcceleration([]);
+    expect(result.is_accelerating).toBe(false);
+    expect(result.recent_rate).toBe(0);
+    expect(result.baseline_rate).toBe(0);
+  });
+
+  it("returns not accelerating for single snapshot", () => {
+    const result = calcDecayAcceleration([makeSnapshot()]);
+    expect(result.is_accelerating).toBe(false);
+  });
+
+  it("detects acceleration when recent rate is ≥1.5× baseline", () => {
+    // baseline (30d): score goes 10 → 20 (10pts / ~28d ≈ 0.36 pts/day)
+    // recent (7d): score goes 20 → 30 in 6 days ≈ 1.67 pts/day — much faster
+    const snapshots = [
+      makeSnapshot({ dead_inventory_score: 10, scored_at: daysAgo(28) }),
+      makeSnapshot({ dead_inventory_score: 20, scored_at: daysAgo(7) }),
+      makeSnapshot({ dead_inventory_score: 30, scored_at: daysAgo(1) }),
+    ];
+    const result = calcDecayAcceleration(snapshots);
+    expect(result.is_accelerating).toBe(true);
+    expect(result.acceleration_factor).toBeGreaterThanOrEqual(1.5);
+  });
+
+  it("not accelerating when recent rate is low even if ratio high", () => {
+    // recent_rate must be > 0.5 to trigger — small absolute rate doesn't count
+    const snapshots = [
+      makeSnapshot({ dead_inventory_score: 10, scored_at: daysAgo(28) }),
+      makeSnapshot({ dead_inventory_score: 11, scored_at: daysAgo(7) }),
+      makeSnapshot({ dead_inventory_score: 11.5, scored_at: daysAgo(1) }),
+    ];
+    const result = calcDecayAcceleration(snapshots);
+    expect(result.is_accelerating).toBe(false);
+  });
+
+  it("not accelerating when rate is steady", () => {
+    // Uniform rate — factor ≈ 1
+    const snapshots = [
+      makeSnapshot({ dead_inventory_score: 10, scored_at: daysAgo(14) }),
+      makeSnapshot({ dead_inventory_score: 17, scored_at: daysAgo(7) }),
+      makeSnapshot({ dead_inventory_score: 24, scored_at: daysAgo(0) }),
+    ];
+    const result = calcDecayAcceleration(snapshots);
+    expect(result.acceleration_factor).toBeLessThan(1.5);
+    expect(result.is_accelerating).toBe(false);
+  });
+
+  it("returns all required fields", () => {
+    const result = calcDecayAcceleration([makeSnapshot()]);
+    expect(result).toHaveProperty("is_accelerating");
+    expect(result).toHaveProperty("recent_rate");
+    expect(result).toHaveProperty("baseline_rate");
+    expect(result).toHaveProperty("acceleration_factor");
+  });
+
+  it("rates are rounded to 2 decimal places", () => {
+    const snapshots = [
+      makeSnapshot({ dead_inventory_score: 10, scored_at: daysAgo(30) }),
+      makeSnapshot({ dead_inventory_score: 40, scored_at: daysAgo(0) }),
+    ];
+    const result = calcDecayAcceleration(snapshots);
+    // Should be rounded (not excessive decimal places)
+    expect(String(result.recent_rate).split(".")[1]?.length ?? 0).toBeLessThanOrEqual(2);
+    expect(String(result.baseline_rate).split(".")[1]?.length ?? 0).toBeLessThanOrEqual(2);
   });
 });
