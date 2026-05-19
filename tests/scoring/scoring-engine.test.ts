@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { calcDeadScore, calcHealthScore, calcVisibilityRisk, calcPrimaryAction } from "@/lib/scoring";
+import { calcDeadScore, calcHealthScore, calcVisibilityRisk, calcPrimaryAction, calcDashboardStats } from "@/lib/scoring";
+import type { InventoryItem } from "@/lib/types";
 import { scoreAuditLead } from "@/lib/audit-scoring";
 import {
   healthyNewListing,
@@ -257,5 +258,124 @@ describe("no contradictory recommendations", () => {
   it("item with 12% watcher rate does not get strategic_markdown", () => {
     // High watcher rate = demand exists, price is working — should hold
     expect(calcPrimaryAction(underpricedListing)).toBe("hold");
+  });
+});
+
+// ─── calcDashboardStats ────────────────────────────────────────────────────────
+
+function makeItem(overrides: Partial<InventoryItem> = {}): InventoryItem {
+  return {
+    id: `item-${Math.random().toString(36).slice(2)}`,
+    user_id: "user",
+    title: "Test Item",
+    platform: "eBay",
+    category: "Sneakers",
+    price: 100,
+    days_listed: 30,
+    image_count: 6,
+    item_specifics_complete: true,
+    title_keyword_strength: 70,
+    has_promoted_listing: false,
+    shipping_type: "free",
+    views: 20,
+    status: "active",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+describe("calcDashboardStats", () => {
+  it("returns zero stats for empty inventory", () => {
+    const stats = calcDashboardStats([]);
+    expect(stats.total_items).toBe(0);
+    expect(stats.trapped_cash).toBe(0);
+    expect(stats.stale_count).toBe(0);
+    expect(stats.stale_cash).toBe(0);
+    expect(stats.dead_inventory_pct).toBe(0);
+  });
+
+  it("counts only active items", () => {
+    const items = [
+      makeItem({ status: "active", price: 100 }),
+      makeItem({ status: "sold", price: 200 }),
+      makeItem({ status: "relisted", price: 150 }),
+    ];
+    const stats = calcDashboardStats(items);
+    expect(stats.total_items).toBe(1);
+    expect(stats.trapped_cash).toBe(100);
+  });
+
+  it("stale_count counts items with days_listed >= 60", () => {
+    const items = [
+      makeItem({ days_listed: 30, price: 50 }),
+      makeItem({ days_listed: 60, price: 80 }),
+      makeItem({ days_listed: 90, price: 120 }),
+    ];
+    const stats = calcDashboardStats(items);
+    expect(stats.stale_count).toBe(2);
+  });
+
+  it("stale_cash sums prices of stale items", () => {
+    const items = [
+      makeItem({ days_listed: 30, price: 50 }),
+      makeItem({ days_listed: 65, price: 80 }),
+      makeItem({ days_listed: 100, price: 120 }),
+    ];
+    const stats = calcDashboardStats(items);
+    expect(stats.stale_cash).toBe(200);
+  });
+
+  it("trapped_cash is sum of all active item prices", () => {
+    const items = [
+      makeItem({ price: 50 }),
+      makeItem({ price: 75 }),
+      makeItem({ price: 25 }),
+    ];
+    const stats = calcDashboardStats(items);
+    expect(stats.trapped_cash).toBe(150);
+  });
+
+  it("critical_count counts items with Critical visibility_risk", () => {
+    // dead_score >= 75 → Critical; stack all bad signals
+    const items = [
+      makeItem({
+        days_listed: 365,
+        item_specifics_complete: false,
+        image_count: 1,
+        title_keyword_strength: 10,
+        views: 0,
+        watchers: 0,
+        shipping_type: "calculated",
+        shipping_cost: 20,
+        price: 10,
+      }),
+      makeItem({ days_listed: 5 }),
+    ];
+    const stats = calcDashboardStats(items);
+    expect(stats.critical_count).toBeGreaterThanOrEqual(1);
+  });
+
+  it("aging_breakdown buckets are present", () => {
+    const stats = calcDashboardStats([makeItem()]);
+    const labels = stats.aging_breakdown.map((b) => b.label);
+    expect(labels).toContain("0–30d");
+    expect(labels).toContain("31–60d");
+    expect(labels).toContain("61–90d");
+    expect(labels).toContain("91–180d");
+    expect(labels).toContain("180d+");
+  });
+
+  it("platform_breakdown groups by platform", () => {
+    const items = [
+      makeItem({ platform: "eBay", price: 100 }),
+      makeItem({ platform: "eBay", price: 50 }),
+      makeItem({ platform: "Poshmark", price: 80 }),
+    ];
+    const stats = calcDashboardStats(items);
+    const ebay = stats.platform_breakdown.find((p) => p.platform === "eBay");
+    expect(ebay?.count).toBe(2);
+    expect(ebay?.value).toBe(150);
+    expect(stats.platform_breakdown.find((p) => p.platform === "Poshmark")?.count).toBe(1);
   });
 });
