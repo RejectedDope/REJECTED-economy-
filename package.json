@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "check:env": "tsx scripts/check-env.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { Zap } from "lucide-react";
+import Link from "next/link";
+import { Zap, Upload } from "lucide-react";
 import { useInventory } from "@/lib/hooks/useInventory";
 import { buildRecoveryPlan } from "@/lib/scoring";
 import { prioritizeRecovery } from "@/lib/inventory/prioritization";
@@ -12,7 +13,7 @@ import { ActionEffectivenessTable } from "@/components/recovery/ActionEffectiven
 import { formatCurrency } from "@/lib/utils";
 
 export default function RecoveryPage() {
-  const { items: scored } = useInventory();
+  const { items: scored, loading, isAuthenticated, isRealData } = useInventory();
   const plan      = useMemo(() => buildRecoveryPlan(scored), [scored]);
   const priority  = useMemo(() => prioritizeRecovery(scored), [scored]);
 
@@ -23,6 +24,8 @@ export default function RecoveryPage() {
   const immediateActions = plan.filter((p) => p.urgency === "immediate");
   const immediateItems = immediateActions.reduce((s, p) => s + p.items.length, 0);
 
+  const isEmpty = !loading && isAuthenticated && scored.length === 0;
+
   return (
     <div className="px-4 py-8 sm:px-6 lg:px-8">
       {/* Header */}
@@ -32,13 +35,41 @@ export default function RecoveryPage() {
           <span className="text-xs font-bold uppercase tracking-widest text-zinc-600">
             Recovery Center
           </span>
+          {!isRealData && !loading && (
+            <span className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-zinc-500">
+              Demo
+            </span>
+          )}
         </div>
         <h1 className="text-2xl font-black text-zinc-100">Recovery Action Center</h1>
         <p className="mt-1 text-sm text-zinc-500">
-          Prioritized actions to unlock your trapped cash. Work from top to bottom.
+          {isEmpty
+            ? "Import your inventory to generate a recovery plan."
+            : "Prioritized actions to unlock your trapped cash. Work from top to bottom."}
         </p>
       </div>
 
+      {/* Empty state — authenticated with no inventory */}
+      {isEmpty && (
+        <div className="flex flex-col items-center gap-4 rounded-xl border border-zinc-800 bg-zinc-900 py-16 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#E935C1]/30 bg-[#E935C1]/10">
+            <Upload className="h-5 w-5 text-[#E935C1]" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-zinc-300">No inventory to analyze</p>
+            <p className="mt-1 text-xs text-zinc-600">Import your listings to generate a recovery action plan.</p>
+          </div>
+          <Link
+            href="/inventory/import"
+            className="rounded-lg bg-[#E935C1] px-5 py-2.5 text-sm font-bold text-white hover:opacity-90"
+          >
+            Import Inventory →
+          </Link>
+        </div>
+      )}
+
+      {/* Main recovery content — hidden when empty */}
+      {!isEmpty && <div>
       {/* Summary strip */}
       <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div className="rounded-lg border border-[#E935C1]/30 bg-[#E935C1]/5 p-5">
@@ -97,6 +128,7 @@ export default function RecoveryPage() {
 
       {/* Action cards */}
       <ActionCards plan={plan} />
+      </div>}
     </div>
   );
 }

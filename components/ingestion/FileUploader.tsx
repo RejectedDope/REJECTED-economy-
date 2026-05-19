@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useDropzone, type FileRejection } from "react-dropzone";
-import { Upload, FileText, Image as ImageIcon, AlertTriangle, X, Loader2 } from "lucide-react";
+import { Upload, FileText, Image as ImageIcon, AlertTriangle, X, Loader2, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type SupportedFileType = "csv" | "xlsx" | "screenshot";
@@ -51,6 +51,8 @@ export function FileUploader({ onFilesAccepted, disabled, maxFiles = 5 }: FileUp
   const [queuedFiles, setQueuedFiles] = useState<UploadedFile[]>([]);
   const [rejections, setRejections] = useState<string[]>([]);
   const [processing, setProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const cameraRef = useRef<HTMLInputElement>(null);
 
   const onDrop = useCallback(
     (accepted: File[], rejected: FileRejection[]) => {
@@ -87,12 +89,38 @@ export function FileUploader({ onFilesAccepted, disabled, maxFiles = 5 }: FileUp
     setQueuedFiles((prev) => prev.filter((f) => f.id !== id));
   }
 
+  function addFiles(files: File[]) {
+    const newFiles: UploadedFile[] = files.map((file) => ({
+      file,
+      type: detectFileType(file),
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    }));
+    setQueuedFiles((prev) => [...prev, ...newFiles].slice(0, maxFiles));
+  }
+
+  function handleCameraChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length) addFiles(files);
+    if (cameraRef.current) cameraRef.current.value = "";
+  }
+
   function handleImport() {
     if (!queuedFiles.length) return;
     setProcessing(true);
+    setProgress(0);
+    // Simulate incremental progress ticks while parent processes
+    const interval = setInterval(() => {
+      setProgress((p) => {
+        if (p >= 90) { clearInterval(interval); return p; }
+        return p + Math.random() * 15;
+      });
+    }, 120);
     onFilesAccepted(queuedFiles);
     setQueuedFiles([]);
-    setProcessing(false);
+    // Progress completes when parent sets processing=false via re-render
+    clearInterval(interval);
+    setProgress(100);
+    setTimeout(() => { setProcessing(false); setProgress(0); }, 400);
   }
 
   return (
@@ -123,13 +151,32 @@ export function FileUploader({ onFilesAccepted, disabled, maxFiles = 5 }: FileUp
               CSV · XLSX · Screenshots (PNG, JPG) — up to {MAX_SIZE_MB} MB each
             </p>
           </div>
-          <button
-            type="button"
-            className="rounded border border-zinc-700 px-4 py-1.5 text-xs font-semibold text-zinc-300 transition-colors hover:border-zinc-500 hover:text-zinc-100"
-            onClick={(e) => e.stopPropagation()}
-          >
-            Browse files
-          </button>
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="rounded border border-zinc-700 px-4 py-1.5 text-xs font-semibold text-zinc-300 transition-colors hover:border-zinc-500 hover:text-zinc-100"
+            >
+              Browse files
+            </button>
+            {/* Mobile camera capture — hidden on desktop via CSS, always rendered for accessibility */}
+            <button
+              type="button"
+              className="flex items-center gap-1.5 rounded border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition-colors hover:border-zinc-500 hover:text-zinc-100 sm:hidden"
+              onClick={() => cameraRef.current?.click()}
+            >
+              <Camera className="h-3.5 w-3.5" />
+              Camera
+            </button>
+            <input
+              ref={cameraRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              multiple
+              className="hidden"
+              onChange={handleCameraChange}
+            />
+          </div>
         </div>
       </div>
 
@@ -211,12 +258,25 @@ export function FileUploader({ onFilesAccepted, disabled, maxFiles = 5 }: FileUp
             </div>
           ))}
 
+          {processing && (
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
+              <div
+                className="h-full rounded-full bg-[#E935C1] transition-all duration-200"
+                style={{ width: `${Math.min(progress, 100)}%` }}
+              />
+            </div>
+          )}
           <button
             onClick={handleImport}
             disabled={processing}
             className="w-full rounded-lg bg-[#E935C1] px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
           >
-            {processing ? "Processing…" : `Parse ${queuedFiles.length} file${queuedFiles.length > 1 ? "s" : ""}`}
+            {processing ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Processing…
+              </span>
+            ) : `Parse ${queuedFiles.length} file${queuedFiles.length > 1 ? "s" : ""}`}
           </button>
         </div>
       )}

@@ -96,6 +96,15 @@ export default async function AdminAuditLeadsPage() {
 
       {/* Content */}
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+        {/* Admin nav */}
+        <div className="mb-6 flex flex-wrap gap-3">
+          <span className="rounded-lg border border-[#E935C1]/40 bg-[#E935C1]/10 px-3 py-1.5 text-xs font-semibold text-[#E935C1]">
+            Audit Leads
+          </span>
+          <Link href="/admin/ingestion" className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-400 hover:border-zinc-500 hover:text-zinc-200">
+            Ingestion Monitor
+          </Link>
+        </div>
         {fetchError ? (
           <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-6">
             <p className="text-sm font-bold text-red-400">Failed to load leads</p>

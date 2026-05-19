@@ -5,14 +5,22 @@ import { scoreAll } from "@/lib/scoring";
 import type { ScoredItem, InventoryItem } from "@/lib/types";
 import { MOCK_ITEMS } from "@/lib/mock-data";
 
-async function fetchInventoryClient(): Promise<InventoryItem[]> {
+type FetchResult =
+  | { authenticated: false }
+  | { authenticated: true; items: InventoryItem[] };
+
+async function fetchInventoryClient(): Promise<FetchResult> {
   try {
+    const { createClient } = await import("@/lib/supabase/client");
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { authenticated: false };
+
     const { fetchUserInventory } = await import("@/app/actions/inventory");
     const result = await fetchUserInventory("active", 500);
-    if (result.error || result.items.length === 0) return [];
-    return result.items;
+    return { authenticated: true, items: result.items ?? [] };
   } catch {
-    return [];
+    return { authenticated: false };
   }
 }
 
@@ -21,15 +29,16 @@ type State = {
   loading: boolean;
   error: string | null;
   isRealData: boolean;
+  isAuthenticated: boolean;
 };
 
 type Action =
-  | { type: "loaded"; items: ScoredItem[]; isRealData: boolean }
+  | { type: "loaded"; items: ScoredItem[]; isRealData: boolean; isAuthenticated: boolean }
   | { type: "error"; error: string };
 
 function reducer(state: State, action: Action): State {
   if (action.type === "loaded") {
-    return { ...state, items: action.items, loading: false, isRealData: action.isRealData, error: null };
+    return { ...state, items: action.items, loading: false, isRealData: action.isRealData, isAuthenticated: action.isAuthenticated, error: null };
   }
   return { ...state, loading: false, error: action.error };
 }
@@ -39,6 +48,7 @@ export interface UseInventoryState {
   loading: boolean;
   error: string | null;
   isRealData: boolean;
+  isAuthenticated: boolean;
   refresh: () => void;
 }
 
@@ -48,18 +58,26 @@ export function useInventory(): UseInventoryState {
     loading: true,
     error: null,
     isRealData: false,
+    isAuthenticated: false,
   });
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
 
-    fetchInventoryClient().then((fetched) => {
+    fetchInventoryClient().then((result) => {
       if (cancelled) return;
+      if (!result.authenticated) {
+        // Unauthenticated — show demo data
+        dispatch({ type: "loaded", items: scoreAll(MOCK_ITEMS), isRealData: false, isAuthenticated: false });
+        return;
+      }
+      // Authenticated — show real data (may be empty)
       dispatch({
         type: "loaded",
-        items: fetched.length > 0 ? scoreAll(fetched) : scoreAll(MOCK_ITEMS),
-        isRealData: fetched.length > 0,
+        items: result.items.length > 0 ? scoreAll(result.items) : [],
+        isRealData: true,
+        isAuthenticated: true,
       });
     }).catch((err: unknown) => {
       if (cancelled) return;

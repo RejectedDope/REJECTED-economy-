@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Zap, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
 import type { PrioritizedItem } from "@/lib/inventory/prioritization";
+import { RecoveryQuickActions } from "./RecoveryQuickActions";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -42,10 +44,13 @@ interface PriorityQueueProps {
 }
 
 export function PriorityQueue({ items, limit = 6 }: PriorityQueueProps) {
-  if (items.length === 0) return null;
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
-  const displayed = items.slice(0, limit);
-  const quickWins = items.filter((i) => i.is_quick_win);
+  const activeItems = items.filter((i) => !dismissed.has(i.item.id));
+  if (activeItems.length === 0) return null;
+
+  const displayed = activeItems.slice(0, limit);
+  const quickWins = activeItems.filter((i) => i.is_quick_win);
 
   return (
     <div className="mb-8 rounded-xl border border-zinc-800 bg-zinc-900">
@@ -57,7 +62,7 @@ export function PriorityQueue({ items, limit = 6 }: PriorityQueueProps) {
             Recovery Priority Queue
           </span>
           <span className="rounded-full border border-zinc-700 bg-zinc-800 px-2 py-0.5 text-[10px] font-bold text-zinc-400">
-            {items.length} items
+            {activeItems.length} items
           </span>
         </div>
         {quickWins.length > 0 && (
@@ -130,6 +135,12 @@ export function PriorityQueue({ items, limit = 6 }: PriorityQueueProps) {
                 </span>
               </div>
 
+              <div className="hidden sm:block" onClick={(e) => e.preventDefault()}>
+                <RecoveryQuickActions
+                  item={item}
+                  onDone={(itemId) => setDismissed((prev) => new Set([...prev, itemId]))}
+                />
+              </div>
               <ArrowRight className="h-3.5 w-3.5 shrink-0 text-zinc-700 transition-colors group-hover:text-zinc-500" />
             </Link>
           );
@@ -137,10 +148,10 @@ export function PriorityQueue({ items, limit = 6 }: PriorityQueueProps) {
       </div>
 
       {/* Footer: show total if truncated */}
-      {items.length > limit && (
+      {activeItems.length > limit && (
         <div className="border-t border-zinc-800 px-5 py-3 text-center">
           <p className="text-xs text-zinc-600">
-            Showing {limit} of {items.length} items.{" "}
+            Showing {limit} of {activeItems.length} items.{" "}
             <Link href="/inventory" className="text-[#E935C1] hover:underline">
               View all in inventory →
             </Link>

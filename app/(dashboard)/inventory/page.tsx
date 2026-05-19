@@ -39,7 +39,7 @@ const SORT_OPTIONS: Array<{ value: SortOption; label: string }> = [
 ];
 
 export default function InventoryPage() {
-  const { items: allItems, loading, isRealData, refresh } = useInventory();
+  const { items: allItems, loading, isRealData, isAuthenticated, refresh } = useInventory();
 
   const platforms = useMemo<Array<Platform | "All">>(() => {
     const unique = Array.from(new Set(allItems.map((i) => i.platform))).sort();
@@ -108,9 +108,13 @@ export default function InventoryPage() {
           </div>
         </div>
         <p className="mt-1 text-sm text-zinc-500">
-          {loading ? "Loading inventory…" : isRealData
+          {loading
+            ? "Loading inventory…"
+            : isRealData
             ? `${allItems.length} items from your inventory`
-            : "Full view of every item — scored, sorted, ready to work."}
+            : isAuthenticated
+            ? "No inventory yet — import your first file to get started"
+            : "Demo inventory — sign in to see your real listings"}
         </p>
       </div>
 
@@ -221,8 +225,22 @@ export default function InventoryPage() {
         </span>
       </div>
 
+      {/* Skeleton loader while fetching */}
+      {loading && (
+        <div className="space-y-2">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3 animate-pulse">
+              <div className="h-3 w-2/5 rounded bg-zinc-800" />
+              <div className="h-3 w-16 rounded bg-zinc-800" />
+              <div className="h-3 w-12 rounded bg-zinc-800" />
+              <div className="h-3 w-16 ml-auto rounded bg-zinc-800" />
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Table or Empty State */}
-      {filtered.length === 0 ? (
+      {!loading && filtered.length === 0 ? (
         <div className="rounded-lg border border-zinc-800 bg-zinc-900 py-16 text-center">
           <p className="text-sm font-semibold text-zinc-500">
             No items match your filters.
@@ -238,9 +256,9 @@ export default function InventoryPage() {
             Clear filters
           </button>
         </div>
-      ) : (
+      ) : !loading ? (
         <InventoryTable items={filtered} />
-      )}
+      ) : null}
     </div>
   );
 }
