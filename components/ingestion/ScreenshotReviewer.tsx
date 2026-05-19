@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Scan, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ExtractedListingFields } from "@/lib/ingestion/screenshot-parser";
@@ -20,11 +20,24 @@ export function ScreenshotReviewer({ file, onExtracted }: ScreenshotReviewerProp
   const [ocrProgress, setOcrProgress] = useState(0);
   const [ocrStatus, setOcrStatus] = useState("");
   const [fields, setFields] = useState<ExtractedListingFields | null>(null);
+  const autoScannedRef = useRef(false);
   // Stable preview URL: create once per file instance
   const previewUrl = useState(() =>
     typeof window !== "undefined" ? URL.createObjectURL(file) : null
   )[0];
   // No cleanup needed — component unmounts when import flow ends
+
+  // Auto-scan on mobile (where camera capture was used) — small files are likely single-listing shots
+  const isMobileCapture = file.name.startsWith("image") || file.name.match(/^(IMG|photo|capture)/i);
+
+  // Auto-scan on mount for mobile camera captures
+  useEffect(() => {
+    if (!isMobileCapture || autoScannedRef.current) return;
+    autoScannedRef.current = true;
+    const t = setTimeout(() => runOCR(), 50);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function runOCR() {
     setExtracting(true);
