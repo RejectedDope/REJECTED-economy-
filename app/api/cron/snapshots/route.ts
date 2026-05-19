@@ -210,9 +210,9 @@ async function runUserPortfolioSnapshot(userId: string): Promise<void> {
   const today = new Date().toISOString().slice(0, 10);
   await supabase.from("portfolio_metrics").upsert({
     user_id: userId,
-    snapshot_date: today,
-    total_items: totalItems,
-    trapped_cash: trappedCash,
+    metric_date: today,
+    active_count: totalItems,
+    total_active_value: trappedCash,
     updated_at: new Date().toISOString(),
-  }, { onConflict: "user_id,snapshot_date" });
+  }, { onConflict: "user_id,metric_date" });
 }

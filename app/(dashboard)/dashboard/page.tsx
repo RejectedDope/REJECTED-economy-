@@ -22,6 +22,7 @@ import { InsightCards } from "@/components/dashboard/InsightCards";
 import { DeathPileTable } from "@/components/dashboard/DeathPileTable";
 import { PortfolioHealthBar } from "@/components/dashboard/PortfolioHealthBar";
 import { LifecycleDistributionBar } from "@/components/dashboard/LifecycleDistributionBar";
+import { TrappedCashTrend } from "@/components/dashboard/TrappedCashTrend";
 import { formatCurrency } from "@/lib/utils";
 
 const ACTION_LABELS: Record<string, string> = {
@@ -294,6 +295,13 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+
+            {/* ── 30-Day Trend (real data only) ─────────────────────────── */}
+            {isRealData && (
+              <div className="mb-6">
+                <TrappedCashTrend />
+              </div>
+            )}
 
             {/* ── Priority Action Strip ──────────────────────────────────── */}
             {topAction && (
