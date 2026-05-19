@@ -268,6 +268,26 @@ export async function logRecoveryAction(
   return { ok: true };
 }
 
+// ─── Fetch Single Item by ID ──────────────────────────────────────────────────
+
+export async function fetchInventoryItemById(
+  id: string
+): Promise<{ item: InventoryItem | null; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { item: null, error: "Not authenticated" };
+
+  const { data, error } = await supabase
+    .from("inventory_items")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (error) return { item: null, error: error.message };
+  return { item: data as unknown as InventoryItem };
+}
+
 // ─── Delete Item ──────────────────────────────────────────────────────────────
 
 export async function deleteInventoryItem(
