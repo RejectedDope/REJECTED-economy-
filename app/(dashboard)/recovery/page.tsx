@@ -2,15 +2,15 @@
 
 import { useMemo } from "react";
 import { Zap } from "lucide-react";
-import { MOCK_ITEMS } from "@/lib/mock-data";
-import { scoreAll, buildRecoveryPlan } from "@/lib/scoring";
+import { useInventory } from "@/lib/hooks/useInventory";
+import { buildRecoveryPlan } from "@/lib/scoring";
 import { prioritizeRecovery } from "@/lib/inventory/prioritization";
 import { ActionCards } from "@/components/recovery/ActionCards";
 import { PriorityQueue } from "@/components/recovery/PriorityQueue";
 import { formatCurrency } from "@/lib/utils";
 
 export default function RecoveryPage() {
-  const scored    = useMemo(() => scoreAll(MOCK_ITEMS), []);
+  const { items: scored } = useInventory();
   const plan      = useMemo(() => buildRecoveryPlan(scored), [scored]);
   const priority  = useMemo(() => prioritizeRecovery(scored), [scored]);
 

@@ -9,6 +9,8 @@ import { ReviewTable, type ReviewRow } from "@/components/ingestion/ReviewTable"
 import { parseCSVFile, type CsvParseResult, type CsvRowError } from "@/lib/ingestion/csv-parser";
 import { validateScreenshotFile } from "@/lib/ingestion/screenshot-parser";
 import { detectDuplicates, type NormalizedRow } from "@/lib/ingestion/normalize";
+import { importInventoryItems } from "@/app/actions/inventory";
+import { parseXLSXAction } from "@/app/actions/import";
 import { logger } from "@/lib/logger";
 
 type Stage = "upload" | "review" | "done";
@@ -81,10 +83,19 @@ export default function ImportPage() {
     const first = csvFiles[0];
 
     if (first.type === "xlsx") {
-      // XLSX parsing requires server action — notify user
-      setParseError(
-        "XLSX files are parsed server-side. This browser preview will be available after Supabase Storage is configured. For now, export your spreadsheet as CSV and re-upload."
-      );
+      const fd = new FormData();
+      fd.append("file", first.file);
+      parseXLSXAction(fd).then((result) => {
+        if (result.rows.length === 0 && result.errors.length > 0) {
+          setParseError("Could not parse XLSX. Check the file is a valid inventory spreadsheet.");
+          return;
+        }
+        const reviewRows = buildReviewRows(result.rows);
+        setImportState({ result, rows: reviewRows, errors: result.errors, warnings: result.warnings, screenshotCount: screenshots.length });
+        setStage("review");
+      }).catch((err: unknown) => {
+        setParseError(`XLSX parse failed: ${String(err)}`);
+      });
       return;
     }
 
@@ -146,14 +157,17 @@ export default function ImportPage() {
   async function handleImport(approvedRows: ReviewRow[]) {
     setIsImporting(true);
     try {
-      // In production this calls a Server Action that writes to Supabase.
-      // For the browser-only preview, we simulate the import.
-      await new Promise((r) => setTimeout(r, 400));
-      setImportedCount(approvedRows.length);
+      const normalizedRows: NormalizedRow[] = approvedRows.map(({ rowIndex: _r, reviewStatus: _s, isDuplicate: _d, duplicateOfRow: _o, ...row }) => row as NormalizedRow);
+      const result = await importInventoryItems(normalizedRows, true);
+      setImportedCount(result.inserted);
+      if (result.errors.length > 0) {
+        logger.warn("ingestion", "Import completed with errors", { errors: result.errors });
+      }
+      logger.info("ingestion", "Import complete", { inserted: result.inserted, skipped: result.skipped, duplicates: result.duplicates });
       setStage("done");
-      logger.info("ingestion", "Import complete (simulated)", { count: approvedRows.length });
     } catch (err) {
       logger.error("ingestion", "Import failed", { error: String(err) });
+      setParseError(String(err));
     } finally {
       setIsImporting(false);
     }

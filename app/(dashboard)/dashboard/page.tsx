@@ -10,8 +10,8 @@ import {
   Zap,
   Clock,
 } from "lucide-react";
-import { MOCK_ITEMS } from "@/lib/mock-data";
-import { scoreAll, calcDashboardStats, buildRecoveryPlan } from "@/lib/scoring";
+import { useInventory } from "@/lib/hooks/useInventory";
+import { calcDashboardStats, buildRecoveryPlan } from "@/lib/scoring";
 import { calcPortfolioHealth } from "@/lib/inventory/portfolio";
 import { AgingChart } from "@/components/dashboard/AgingChart";
 import { PlatformChart } from "@/components/dashboard/PlatformChart";
@@ -33,8 +33,8 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 export default function DashboardPage() {
-  const scored        = useMemo(() => scoreAll(MOCK_ITEMS), []);
-  const stats         = useMemo(() => calcDashboardStats(MOCK_ITEMS), []);
+  const { items: scored } = useInventory();
+  const stats         = useMemo(() => calcDashboardStats(scored), [scored]);
   const recoveryPlan  = useMemo(() => buildRecoveryPlan(scored), [scored]);
   const portfolioHealth = useMemo(() => calcPortfolioHealth(scored), [scored]);
 

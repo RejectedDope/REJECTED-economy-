@@ -2,9 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Package, Search, Upload } from "lucide-react";
-import { MOCK_ITEMS } from "@/lib/mock-data";
-import { scoreAll } from "@/lib/scoring";
+import { Package, Search, Upload, RefreshCw } from "lucide-react";
+import { useInventory } from "@/lib/hooks/useInventory";
 import { InventoryTable } from "@/components/analyzer/InventoryTable";
 import { formatCurrency } from "@/lib/utils";
 import type { ScoredItem, VisibilityRisk, Platform } from "@/lib/types";
@@ -39,7 +38,7 @@ const SORT_OPTIONS: Array<{ value: SortOption; label: string }> = [
 ];
 
 export default function InventoryPage() {
-  const allItems = useMemo(() => scoreAll(MOCK_ITEMS), []);
+  const { items: allItems, loading, isRealData, refresh } = useInventory();
 
   const platforms = useMemo<Array<Platform | "All">>(() => {
     const unique = Array.from(new Set(allItems.map((i) => i.platform))).sort();
@@ -84,16 +83,25 @@ export default function InventoryPage() {
         </div>
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-black text-zinc-100">Inventory</h1>
-          <Link
-            href="/inventory/import"
-            className="flex items-center gap-2 rounded-lg border border-zinc-700 px-4 py-2 text-xs font-bold text-zinc-300 transition-colors hover:border-[#E935C1] hover:text-[#E935C1]"
-          >
-            <Upload className="h-3.5 w-3.5" />
-            Import
-          </Link>
+          <div className="flex items-center gap-2">
+            {isRealData && (
+              <button onClick={refresh} className="flex items-center gap-1 text-xs text-zinc-600 hover:text-zinc-400">
+                <RefreshCw className="h-3 w-3" /> Refresh
+              </button>
+            )}
+            <Link
+              href="/inventory/import"
+              className="flex items-center gap-2 rounded-lg border border-zinc-700 px-4 py-2 text-xs font-bold text-zinc-300 transition-colors hover:border-[#E935C1] hover:text-[#E935C1]"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              Import
+            </Link>
+          </div>
         </div>
         <p className="mt-1 text-sm text-zinc-500">
-          Full view of every item — scored, sorted, ready to work.
+          {loading ? "Loading inventory…" : isRealData
+            ? `${allItems.length} items from your inventory`
+            : "Full view of every item — scored, sorted, ready to work."}
         </p>
       </div>
 
