@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, RefreshCw, Clock, Loader2 } from "lucide-react";
+import { CheckCircle2, RefreshCw, Clock, Loader2, MessageSquare, Send } from "lucide-react";
 import type { ScoredItem } from "@/lib/types";
 
 interface RecoveryQuickActionsProps {
@@ -12,6 +12,9 @@ interface RecoveryQuickActionsProps {
 export function RecoveryQuickActions({ item, onDone }: RecoveryQuickActionsProps) {
   const [pending, setPending] = useState<"sold" | "relisted" | "snoozed" | null>(null);
   const [done, setDone] = useState<"sold" | "relisted" | "snoozed" | null>(null);
+  const [showNote, setShowNote] = useState(false);
+  const [note, setNote] = useState("");
+  const [noteSaved, setNoteSaved] = useState(false);
 
   async function handleAction(action: "sold" | "relisted" | "snoozed") {
     if (pending || done) return;
@@ -25,19 +28,60 @@ export function RecoveryQuickActions({ item, onDone }: RecoveryQuickActionsProps
         onDone?.(item.id, action);
       }
     } catch {
-      // Silent fail — item remains in list
+      // Silent fail
     } finally {
       setPending(null);
+    }
+  }
+
+  async function saveNote() {
+    if (!note.trim()) return;
+    try {
+      const { logRecoveryAction } = await import("@/app/actions/inventory");
+      await logRecoveryAction(item.id, "hold", "completed", { notes: note.trim() });
+      setNoteSaved(true);
+      setShowNote(false);
+    } catch {
+      // Non-fatal
     }
   }
 
   if (done) {
     const labels = { sold: "Marked Sold", relisted: "Marked Relisted", snoozed: "Snoozed" };
     return (
-      <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-400">
-        <CheckCircle2 className="h-3 w-3" />
-        {labels[done]}
-      </span>
+      <div className="flex flex-col gap-1">
+        <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-400">
+          <CheckCircle2 className="h-3 w-3" />
+          {labels[done]}
+        </span>
+        {!noteSaved && !showNote && (
+          <button
+            onClick={(e) => { e.preventDefault(); setShowNote(true); }}
+            className="flex items-center gap-1 text-[10px] text-zinc-600 hover:text-zinc-400"
+          >
+            <MessageSquare className="h-2.5 w-2.5" />
+            Add note
+          </button>
+        )}
+        {showNote && (
+          <div className="flex items-center gap-1" onClick={(e) => e.preventDefault()}>
+            <input
+              autoFocus
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && saveNote()}
+              placeholder="What did you do?"
+              className="w-32 rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-300 placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none"
+            />
+            <button onClick={saveNote} className="text-zinc-500 hover:text-zinc-300">
+              <Send className="h-2.5 w-2.5" />
+            </button>
+          </div>
+        )}
+        {noteSaved && (
+          <span className="text-[10px] text-zinc-600">Note saved</span>
+        )}
+      </div>
     );
   }
 

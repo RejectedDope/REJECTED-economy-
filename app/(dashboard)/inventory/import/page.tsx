@@ -297,7 +297,7 @@ export default function ImportPage() {
 
       {/* Stage content */}
       {stage === "upload" && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <FileUploader onFilesAccepted={handleFilesAccepted} />
           {parseError && (
             <div className="flex items-start gap-3 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3">
@@ -305,6 +305,49 @@ export default function ImportPage() {
               <p className="text-sm text-red-300">{parseError}</p>
             </div>
           )}
+
+          {/* Export guides */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
+            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-zinc-600">
+              How to export your inventory
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {[
+                {
+                  platform: "eBay",
+                  steps: ["Seller Hub → Reports", "Request a report → Active listings", "Download CSV when ready"],
+                  color: "text-yellow-400",
+                },
+                {
+                  platform: "Poshmark",
+                  steps: ["Account Settings → My Inventory", "Export Closet → Download CSV", "Use the exported file directly"],
+                  color: "text-red-400",
+                },
+                {
+                  platform: "Mercari",
+                  steps: ["Profile → Selling → All listings", "Screenshot or manually export", "Upload screenshots for OCR extraction"],
+                  color: "text-blue-400",
+                },
+                {
+                  platform: "Other / Custom",
+                  steps: ["Export any CSV with Title, Price, Days Listed", "Column mapper will align headers", "Supports any structured spreadsheet"],
+                  color: "text-zinc-400",
+                },
+              ].map((guide) => (
+                <div key={guide.platform} className="rounded-lg border border-zinc-800 p-3">
+                  <p className={`mb-2 text-xs font-bold ${guide.color}`}>{guide.platform}</p>
+                  <ol className="space-y-0.5">
+                    {guide.steps.map((step, i) => (
+                      <li key={i} className="flex items-start gap-1.5 text-[11px] text-zinc-600">
+                        <span className="mt-0.5 shrink-0 font-bold text-zinc-700">{i + 1}.</span>
+                        {step}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
