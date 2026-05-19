@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Settings, Database, Bell, User, Zap } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Settings, Database, Bell, User, Zap, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,11 +16,47 @@ export default function SettingsPage() {
     stale_critical: 90,
     dead_threshold: 180,
   });
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  function handleSave() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  // Load existing settings on mount
+  useEffect(() => {
+    import("@/app/actions/settings").then(({ fetchUserSettings }) => {
+      fetchUserSettings().then(({ settings }) => {
+        if (!settings) return;
+        setPrimaryPlatform(settings.primary_platform ?? "eBay");
+        setThresholds({
+          stale_warning: settings.stale_warning_days ?? 60,
+          stale_critical: settings.stale_critical_days ?? 90,
+          dead_threshold: settings.dead_threshold_days ?? 180,
+        });
+      }).catch(() => {/* unauthenticated — use defaults */});
+    });
+  }, []);
+
+  async function handleSave() {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const { saveUserSettings } = await import("@/app/actions/settings");
+      const result = await saveUserSettings({
+        primary_platform: primaryPlatform as Parameters<typeof saveUserSettings>[0]["primary_platform"],
+        stale_warning_days: thresholds.stale_warning,
+        stale_critical_days: thresholds.stale_critical,
+        dead_threshold_days: thresholds.dead_threshold,
+      });
+      if (!result.ok) {
+        setSaveError(result.error ?? "Save failed");
+      } else {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2500);
+      }
+    } catch (err) {
+      setSaveError(String(err));
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -211,10 +247,14 @@ export default function SettingsPage() {
 
         {/* Save button */}
         <div className="flex items-center gap-3">
-          <Button onClick={handleSave} className={saved ? "bg-emerald-600 hover:bg-emerald-600" : ""}>
-            {saved ? "Saved!" : "Save Settings"}
+          <Button onClick={handleSave} disabled={saving} className={saved ? "bg-emerald-600 hover:bg-emerald-600" : ""}>
+            {saving ? "Saving…" : saved ? (
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5" /> Saved</span>
+            ) : "Save Settings"}
           </Button>
-          <Button variant="ghost">Cancel</Button>
+          {saveError && (
+            <p className="text-xs text-red-400">{saveError}</p>
+          )}
         </div>
       </div>
     </div>
