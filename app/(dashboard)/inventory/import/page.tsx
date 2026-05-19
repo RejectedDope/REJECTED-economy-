@@ -6,8 +6,10 @@ import { ArrowLeft, CheckCircle2, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { FileUploader, type UploadedFile } from "@/components/ingestion/FileUploader";
 import { ReviewTable, type ReviewRow } from "@/components/ingestion/ReviewTable";
+import { ScreenshotReviewer } from "@/components/ingestion/ScreenshotReviewer";
 import { parseCSVFile, type CsvParseResult, type CsvRowError } from "@/lib/ingestion/csv-parser";
-import { validateScreenshotFile } from "@/lib/ingestion/screenshot-parser";
+import { validateScreenshotFile, type ExtractedListingFields } from "@/lib/ingestion/screenshot-parser";
+import { normalizePlatform, normalizePrice } from "@/lib/ingestion/normalize";
 import { detectDuplicates, type NormalizedRow } from "@/lib/ingestion/normalize";
 import { importInventoryItems } from "@/app/actions/inventory";
 import { parseXLSXAction } from "@/app/actions/import";
@@ -22,6 +24,33 @@ type ImportState = {
   warnings: CsvRowError[];
   screenshotCount: number;
 };
+
+type ScreenshotEntry = {
+  file: File;
+  fields: ExtractedListingFields | null;
+};
+
+function ocrFieldsToNormalizedRow(fields: ExtractedListingFields): NormalizedRow | null {
+  const priceResult = normalizePrice(fields.price);
+  if (!priceResult.ok) return null;
+  return {
+    title: fields.title ?? "Untitled Screenshot Import",
+    platform: normalizePlatform(fields.platform),
+    category: "Other",
+    price: priceResult.value,
+    days_listed: fields.days_listed ? parseInt(fields.days_listed, 10) || 0 : 0,
+    item_specifics_complete: false,
+    image_count: 0,
+    title_keyword_strength: 50,
+    has_promoted_listing: false,
+    shipping_type: "free",
+    views: fields.views ? parseInt(fields.views, 10) || 0 : 0,
+    watchers: fields.watchers ? parseInt(fields.watchers, 10) || 0 : 0,
+    impressions: 0,
+    status: "active",
+    warnings: [],
+  };
+}
 
 function buildReviewRows(normalizedRows: NormalizedRow[]): ReviewRow[] {
   const { duplicates } = detectDuplicates(normalizedRows);
@@ -46,6 +75,7 @@ export default function ImportPage() {
     warnings: [],
     screenshotCount: 0,
   });
+  const [screenshotEntries, setScreenshotEntries] = useState<ScreenshotEntry[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
   const [parseError, setParseError] = useState<string | null>(null);
@@ -62,7 +92,11 @@ export default function ImportPage() {
     });
 
     if (csvFiles.length === 0 && screenshots.length > 0) {
-      // Screenshots only — go to review with empty CSV + screenshot staging notice
+      // Screenshots only — stage for OCR review
+      const validScreenshots = screenshots.filter((s) =>
+        validateScreenshotFile({ name: s.file.name, size: s.file.size, type: s.file.type }).valid
+      );
+      setScreenshotEntries(validScreenshots.map((s) => ({ file: s.file, fields: null })));
       setImportState({
         result: null,
         rows: [],
@@ -246,15 +280,38 @@ export default function ImportPage() {
 
       {stage === "review" && (
         <div className="space-y-4">
-          {importState.screenshotCount > 0 && importState.rows.length === 0 && (
-            <div className="rounded-lg border border-blue-400/30 bg-blue-400/10 px-5 py-4">
-              <p className="text-sm font-semibold text-blue-300">
-                {importState.screenshotCount} screenshot{importState.screenshotCount > 1 ? "s" : ""} staged for manual review
+          {/* Screenshot OCR Review */}
+          {screenshotEntries.length > 0 && importState.rows.length === 0 && (
+            <div className="space-y-4">
+              <p className="text-sm font-semibold text-zinc-400">
+                Review extracted fields for each screenshot. Correct any errors, then import.
               </p>
-              <p className="mt-1 text-xs text-blue-300/70">
-                Screenshots are queued as pending review. Enter the listing details manually
-                for each screenshot before importing.
-              </p>
+              {screenshotEntries.map((entry, idx) => (
+                <ScreenshotReviewer
+                  key={idx}
+                  file={entry.file}
+                  onExtracted={(fields) => {
+                    setScreenshotEntries((prev) =>
+                      prev.map((e, i) => i === idx ? { ...e, fields } : e)
+                    );
+                  }}
+                />
+              ))}
+              <button
+                onClick={() => {
+                  const validRows: NormalizedRow[] = screenshotEntries
+                    .filter((e) => e.fields && e.fields.title)
+                    .map((e) => ocrFieldsToNormalizedRow(e.fields!))
+                    .filter((r): r is NormalizedRow => r !== null);
+                  if (validRows.length > 0) {
+                    const reviewRows = buildReviewRows(validRows);
+                    setImportState((prev) => ({ ...prev, rows: reviewRows }));
+                  }
+                }}
+                className="w-full rounded-lg border border-[#E935C1]/30 bg-[#E935C1]/10 py-2.5 text-sm font-bold text-[#E935C1] hover:bg-[#E935C1]/20 transition-colors"
+              >
+                Continue to Review →
+              </button>
             </div>
           )}
 
