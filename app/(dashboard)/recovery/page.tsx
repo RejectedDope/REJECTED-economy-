@@ -4,12 +4,15 @@ import { useMemo } from "react";
 import { Zap } from "lucide-react";
 import { MOCK_ITEMS } from "@/lib/mock-data";
 import { scoreAll, buildRecoveryPlan } from "@/lib/scoring";
+import { prioritizeRecovery } from "@/lib/inventory/prioritization";
 import { ActionCards } from "@/components/recovery/ActionCards";
+import { PriorityQueue } from "@/components/recovery/PriorityQueue";
 import { formatCurrency } from "@/lib/utils";
 
 export default function RecoveryPage() {
-  const scored = useMemo(() => scoreAll(MOCK_ITEMS), []);
-  const plan = useMemo(() => buildRecoveryPlan(scored), [scored]);
+  const scored    = useMemo(() => scoreAll(MOCK_ITEMS), []);
+  const plan      = useMemo(() => buildRecoveryPlan(scored), [scored]);
+  const priority  = useMemo(() => prioritizeRecovery(scored), [scored]);
 
   const totalRecoverable = plan.reduce(
     (sum, p) => sum + p.estimated_cash_recovery,
@@ -66,6 +69,9 @@ export default function RecoveryPage() {
           <p className="mt-0.5 text-xs text-zinc-600">recovery strategies active</p>
         </div>
       </div>
+
+      {/* Priority Queue — ranked by urgency + ROI */}
+      <PriorityQueue items={priority} limit={6} />
 
       {/* Priority guide */}
       <div className="mb-6 rounded-lg border border-zinc-800 bg-zinc-900 p-4">

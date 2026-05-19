@@ -12,10 +12,13 @@ import {
 } from "lucide-react";
 import { MOCK_ITEMS } from "@/lib/mock-data";
 import { scoreAll, calcDashboardStats, buildRecoveryPlan } from "@/lib/scoring";
+import { calcPortfolioHealth } from "@/lib/inventory/portfolio";
 import { AgingChart } from "@/components/dashboard/AgingChart";
 import { PlatformChart } from "@/components/dashboard/PlatformChart";
 import { InsightCards } from "@/components/dashboard/InsightCards";
 import { DeathPileTable } from "@/components/dashboard/DeathPileTable";
+import { PortfolioHealthBar } from "@/components/dashboard/PortfolioHealthBar";
+import { LifecycleDistributionBar } from "@/components/dashboard/LifecycleDistributionBar";
 import { formatCurrency } from "@/lib/utils";
 
 const ACTION_LABELS: Record<string, string> = {
@@ -30,9 +33,10 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 export default function DashboardPage() {
-  const scored      = useMemo(() => scoreAll(MOCK_ITEMS), []);
-  const stats       = useMemo(() => calcDashboardStats(MOCK_ITEMS), []);
-  const recoveryPlan = useMemo(() => buildRecoveryPlan(scored), [scored]);
+  const scored        = useMemo(() => scoreAll(MOCK_ITEMS), []);
+  const stats         = useMemo(() => calcDashboardStats(MOCK_ITEMS), []);
+  const recoveryPlan  = useMemo(() => buildRecoveryPlan(scored), [scored]);
+  const portfolioHealth = useMemo(() => calcPortfolioHealth(scored), [scored]);
 
   // Top immediate action — the single thing the seller should do right now
   const topAction = recoveryPlan.find((p) => p.urgency === "immediate");
@@ -209,6 +213,12 @@ export default function DashboardPage() {
             </Link>
           </div>
         )}
+
+        {/* ── Portfolio Health Bar ─────────────────────────────────────────── */}
+        <PortfolioHealthBar health={portfolioHealth} />
+
+        {/* ── Lifecycle Distribution ───────────────────────────────────────── */}
+        <LifecycleDistributionBar items={scored} />
 
         {/* ── Aging Chart + Platform Breakdown ─────────────────────────────── */}
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
