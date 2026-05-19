@@ -17,6 +17,8 @@ const PLATFORM_OPTIONS = [
 
 export function ScreenshotReviewer({ file, onExtracted }: ScreenshotReviewerProps) {
   const [extracting, setExtracting] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState(0);
+  const [ocrStatus, setOcrStatus] = useState("");
   const [fields, setFields] = useState<ExtractedListingFields | null>(null);
   // Stable preview URL: create once per file instance
   const previewUrl = useState(() =>
@@ -26,9 +28,15 @@ export function ScreenshotReviewer({ file, onExtracted }: ScreenshotReviewerProp
 
   async function runOCR() {
     setExtracting(true);
+    setOcrProgress(0);
+    setOcrStatus("Starting…");
     try {
       const { extractFromScreenshot } = await import("@/lib/ingestion/ocr");
-      const result = await extractFromScreenshot(file);
+      const result = await extractFromScreenshot(file, (pct, status) => {
+        setOcrProgress(pct);
+        setOcrStatus(status);
+      });
+      setOcrProgress(100);
       setFields(result);
       onExtracted(result, file);
     } catch {
@@ -70,9 +78,10 @@ export function ScreenshotReviewer({ file, onExtracted }: ScreenshotReviewerProp
           </button>
         )}
         {extracting && (
-          <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+          <div className="flex items-center gap-2 text-xs text-zinc-500">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            Scanning…
+            <span>{ocrStatus || "Scanning…"}</span>
+            <span className="font-bold text-zinc-400">{ocrProgress}%</span>
           </div>
         )}
         {fields && (
@@ -106,8 +115,20 @@ export function ScreenshotReviewer({ file, onExtracted }: ScreenshotReviewerProp
             </p>
           )}
           {extracting && (
-            <div className="flex items-center justify-center py-6">
-              <Loader2 className="h-5 w-5 animate-spin text-zinc-600" />
+            <div className="flex flex-col items-center justify-center gap-3 py-6">
+              <Loader2 className="h-5 w-5 animate-spin text-[#E935C1]" />
+              <div className="w-full max-w-[180px]">
+                <div className="mb-1 flex justify-between text-[10px] text-zinc-600">
+                  <span>{ocrStatus || "Processing…"}</span>
+                  <span className="font-bold text-zinc-400">{ocrProgress}%</span>
+                </div>
+                <div className="h-1 w-full overflow-hidden rounded-full bg-zinc-800">
+                  <div
+                    className="h-full rounded-full bg-[#E935C1] transition-all duration-200"
+                    style={{ width: `${ocrProgress}%` }}
+                  />
+                </div>
+              </div>
             </div>
           )}
           {fields && (

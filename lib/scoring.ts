@@ -391,6 +391,11 @@ export function calcDashboardStats(items: InventoryItem[]): DashboardStats {
     if (item.dead_inventory_score >= 50) bucket.dead_count++;
   }
 
+  // Stale = listed 60+ days and not sold (algorithm cliff)
+  const staleItems = active.filter((i) => i.days_listed >= 60);
+  const stale_count = staleItems.length;
+  const stale_cash = staleItems.reduce((s, i) => s + i.price, 0);
+
   return {
     total_items: active.length,
     trapped_cash,
@@ -398,6 +403,8 @@ export function calcDashboardStats(items: InventoryItem[]): DashboardStats {
     critical_count,
     high_risk_count,
     avg_days_listed,
+    stale_count,
+    stale_cash,
     aging_breakdown: buckets,
     platform_breakdown: Array.from(platformMap.values()).sort((a, b) => b.value - a.value),
   };

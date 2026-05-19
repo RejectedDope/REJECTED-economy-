@@ -272,25 +272,23 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Avg days */}
+                {/* Stale Inventory */}
                 <div className="flex flex-col justify-between p-5">
                   <div className="flex items-start justify-between">
                     <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">
-                      Avg Days Listed
+                      Stale Inventory
                     </p>
                     <Clock className="h-4 w-4 text-zinc-700" />
                   </div>
                   <div>
                     <p className="text-3xl font-black text-zinc-100">
-                      {stats.avg_days_listed}
-                      <span className="text-xl text-zinc-500">d</span>
+                      {stats.stale_count}
+                      <span className="ml-1 text-xl text-zinc-500">items</span>
                     </p>
                     <p className="mt-1 text-xs text-zinc-600">
-                      {stats.avg_days_listed > 90
-                        ? "past the algorithm cliff"
-                        : stats.avg_days_listed > 60
-                        ? "approaching stale"
-                        : "within healthy range"}
+                      {stats.stale_cash > 0
+                        ? `${formatCurrency(stats.stale_cash)} sitting 60d+`
+                        : "60+ days listed"}
                     </p>
                   </div>
                 </div>

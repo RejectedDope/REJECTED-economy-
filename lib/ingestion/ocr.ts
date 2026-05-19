@@ -144,15 +144,26 @@ function scoreConfidence(fields: Omit<ExtractedListingFields, "confidence" | "ex
 // ─── Main OCR extraction ───────────────────────────────────────────────────────
 
 export async function extractFromScreenshot(
-  imageFile: File
+  imageFile: File,
+  onProgress?: (pct: number, status: string) => void
 ): Promise<ExtractedListingFields> {
   try {
     // Dynamic import — Tesseract.js is large, only load when needed
     const Tesseract = await import("tesseract.js");
 
     const result = await Tesseract.recognize(imageFile, "eng", {
-      // Minimal logging — suppress worker chatter
-      logger: () => {},
+      logger: (m: { status: string; progress: number }) => {
+        if (onProgress && typeof m.progress === "number") {
+          const pct = Math.round(m.progress * 100);
+          const status = m.status === "recognizing text" ? "Scanning text…"
+            : m.status === "loading tesseract core" ? "Loading OCR…"
+            : m.status === "initializing tesseract" ? "Initializing…"
+            : m.status === "loading language traineddata" ? "Loading language…"
+            : m.status === "initializing api" ? "Starting up…"
+            : m.status;
+          onProgress(pct, status);
+        }
+      },
     });
 
     const rawText = result.data.text;

@@ -85,6 +85,8 @@ export default function ImportPage() {
   const [screenshotEntries, setScreenshotEntries] = useState<ScreenshotEntry[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
+  const [importSkipped, setImportSkipped] = useState(0);
+  const [importDuplicates, setImportDuplicates] = useState(0);
   const [parseError, setParseError] = useState<string | null>(null);
   // Column mapping state
   const [pendingCsvFile, setPendingCsvFile] = useState<File | null>(null);
@@ -214,6 +216,8 @@ export default function ImportPage() {
       );
       const result = await importInventoryItems(normalizedRows, true);
       setImportedCount(result.inserted);
+      setImportSkipped(result.skipped ?? 0);
+      setImportDuplicates(result.duplicates ?? 0);
       if (result.errors.length > 0) {
         logger.warn("ingestion", "Import completed with errors", { errors: result.errors });
       }
@@ -379,31 +383,68 @@ export default function ImportPage() {
       )}
 
       {stage === "done" && (
-        <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/5 px-8 py-12 text-center">
-          <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-400" />
-          <h2 className="mt-4 text-xl font-bold text-zinc-100">
-            {importedCount} listing{importedCount !== 1 ? "s" : ""} imported
-          </h2>
-          <p className="mt-2 text-sm text-zinc-500">
-            Your inventory has been updated. Scores will be calculated on the next scan.
-          </p>
-          <div className="mt-6 flex justify-center gap-4">
+        <div className="space-y-4">
+          {/* Success header */}
+          <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/5 px-8 py-10 text-center">
+            <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-400" />
+            <h2 className="mt-4 text-xl font-bold text-zinc-100">
+              Import Complete
+            </h2>
+            <p className="mt-1 text-sm text-zinc-500">
+              Your inventory has been scored and is ready for analysis.
+            </p>
+          </div>
+
+          {/* Import summary */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 text-center">
+              <p className="text-2xl font-black text-emerald-400">{importedCount}</p>
+              <p className="mt-0.5 text-xs font-bold uppercase tracking-widest text-zinc-600">Imported</p>
+            </div>
+            <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 text-center">
+              <p className="text-2xl font-black text-purple-400">{importDuplicates}</p>
+              <p className="mt-0.5 text-xs font-bold uppercase tracking-widest text-zinc-600">Duplicates</p>
+            </div>
+            <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 text-center">
+              <p className="text-2xl font-black text-zinc-500">{importSkipped}</p>
+              <p className="mt-0.5 text-xs font-bold uppercase tracking-widest text-zinc-600">Skipped</p>
+            </div>
+          </div>
+
+          {/* Next step CTAs */}
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="flex-1 rounded-lg bg-[#E935C1] px-5 py-2.5 text-sm font-bold text-white hover:opacity-90"
+            >
+              View Dashboard →
+            </button>
+            <button
+              onClick={() => router.push("/recovery")}
+              className="flex-1 rounded-lg border border-zinc-700 px-5 py-2.5 text-sm font-semibold text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
+            >
+              Run Recovery Audit →
+            </button>
             <button
               onClick={() => router.push("/inventory")}
-              className="rounded-lg bg-[#E935C1] px-5 py-2.5 text-sm font-bold text-white hover:opacity-90"
+              className="flex-1 rounded-lg border border-zinc-700 px-5 py-2.5 text-sm font-semibold text-zinc-400 hover:border-zinc-500"
             >
-              View inventory
-            </button>
-            <button
-              onClick={() => {
-                setStage("upload");
-                setImportState({ result: null, rows: [], errors: [], warnings: [], screenshotCount: 0 });
-              }}
-              className="rounded-lg border border-zinc-700 px-5 py-2.5 text-sm font-semibold text-zinc-400 hover:border-zinc-500"
-            >
-              Import more
+              View Inventory
             </button>
           </div>
+
+          <button
+            onClick={() => {
+              setStage("upload");
+              setImportState({ result: null, rows: [], errors: [], warnings: [], screenshotCount: 0 });
+              setImportedCount(0);
+              setImportSkipped(0);
+              setImportDuplicates(0);
+            }}
+            className="w-full text-xs text-zinc-600 hover:text-zinc-400 py-1"
+          >
+            Import another file
+          </button>
         </div>
       )}
     </div>

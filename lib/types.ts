@@ -339,6 +339,8 @@ export interface DashboardStats {
   critical_count: number;
   high_risk_count: number;
   avg_days_listed: number;
+  stale_count: number;
+  stale_cash: number;
   aging_breakdown: AgingBucket[];
   platform_breakdown: PlatformBucket[];
 }
